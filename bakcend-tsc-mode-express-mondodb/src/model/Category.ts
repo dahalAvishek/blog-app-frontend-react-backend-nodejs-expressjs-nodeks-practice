@@ -1,8 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
+
+export interface CategoryI {
+  name: string;
+  blogs: ObjectId[];
+}
 
 const Schema = mongoose.Schema;
 
-const categorySchema = new Schema({
+const categorySchema = new Schema<CategoryI>({
   name: {
     type: String,
     required: true,

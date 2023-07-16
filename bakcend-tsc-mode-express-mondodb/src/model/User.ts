@@ -1,6 +1,13 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 
-const userSchema = new mongoose.Schema({
+export interface UserI {
+  name: string;
+  email: string;
+  password: string;
+  blogs: ObjectId[];
+}
+
+const userSchema = new mongoose.Schema<UserI>({
   name: {
     type: String,
     required: true,

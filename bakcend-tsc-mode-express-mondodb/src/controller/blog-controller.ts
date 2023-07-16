@@ -3,8 +3,15 @@ import Blog from "../model/Blog";
 import User from "../model/user";
 import Category from "../model/Category";
 import { Request, Response } from "express";
+import { BlogI } from "../model/Blog";
 
-export const getAllBlogs = async (req: Request, res: Response) => {
+export const getAllBlogs: (
+  req: Request,
+  res: Response
+) => Promise<void | Response<any, Record<string, any>>> = async (
+  req: Request,
+  res: Response
+) => {
   let blogs;
   try {
     blogs = await Blog.find();
@@ -18,55 +25,56 @@ export const getAllBlogs = async (req: Request, res: Response) => {
   return res.status(200).json({ blogs });
 };
 
-// export const addBlog = async (req: Request, res: Response) => {
-//   const { title, description, image, user, categories } = req.body;
+export const addBlog = async (req: Request, res: Response) => {
+  const { title, description, image, user, categories } = req.body;
 
-//   let existingUser;
-//   try {
-//     existingUser = await User.findById(user);
-//   } catch (err) {
-//     return console.log(err);
-//   }
+  let existingUser;
+  try {
+    existingUser = await User.findById(user);
+  } catch (err) {
+    return console.log(err);
+  }
 
-//   if (!existingUser.id) {
-//     return res.status(400).json({ message: "Unable to find user by this ID" });
-//   }
+  if (!existingUser.id) {
+    return res.status(400).json({ message: "Unable to find user by this ID" });
+  }
 
-//   let existingCategory;
-//   try {
-//     existingCategory = await Category.findById(categories);
-//   } catch (err) {
-//     return console.log(err);
-//   }
+  let existingCategory;
+  try {
+    existingCategory = await Category.findById(categories);
+  } catch (err) {
+    return console.log(err);
+  }
 
-//   if (!existingCategory) {
-//     console.log(categories);
-//     debugger;
-//     return res.status(400).json({ message: "Unable to find user by this ID" });
-//   }
+  if (!existingCategory) {
+    console.log(categories);
+    debugger;
+    return res.status(400).json({ message: "Unable to find user by this ID" });
+  }
 
-//   const blog = new Blog({
-//     title,
-//     description,
-//     image,
-//     user,
-//     categories,
-//   });
-//   try {
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-//     await blog.save({ session });
-//     existingUser.blogs.push(blog);
-//     await existingUser.save({ session });
-//     existingCategory.blogs.push(blog);
-//     await existingCategory.save({ session });
-//     await session.commitTransaction();
-//   } catch (err) {
-//     console.log(err);
-//     return res.status(500).json({ message: err });
-//   }
-//   return res.status(200).json({ blog });
-// };
+  const blog = new Blog({
+    title,
+    description,
+    image,
+    user,
+    categories,
+  });
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    const newBlog = await blog.save({ session });
+    console.log(">>>>", newBlog._id.toString());
+    existingUser.blogs.push(newBlog.id);
+    existingCategory.blogs.push(newBlog.id);
+    await existingUser.save({ session });
+    await existingCategory.save({ session });
+    await session.commitTransaction();
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: err });
+  }
+  return res.status(200).json({ blog });
+};
 
 export const updateBlog = async (req: Request, res: Response) => {
   const { title, description, categories } = req.body;
@@ -101,24 +109,52 @@ export const getById = async (req: Request, res: Response) => {
   return res.status(200).json({ blog });
 };
 
-// export const deleteBlog = async (req: Request, res: Response) => {
-//   const id = req.params.id;
-//   let blog;
-//   try {
-//     blog = await Blog.findByIdAndRemove(id).populate("user");
-//     await blog.user.blogs.pull(blog);
-//     await blog.user.save();
-//     blog = await Blog.findByIdAndRemove(id).populate("categories");
-//     await blog.categories.blogs.pull(blog);
-//     await blog.categories.save();
-//   } catch (err) {
-//     console.log(err);
-//   }
-//   if (!blog) {
-//     return res.status(400).json({ message: blog });
-//   }
-//   return res.status(200).json({ message: "Sucessfully deleted!!" });
-// };
+export const deleteBlog = async (req: Request, res: Response) => {
+  const id = req.params.id;
+  let blog;
+  try {
+    blog = await Blog.findByIdAndRemove(id);
+  } catch (err) {
+    console.log(err);
+  }
+  if (!blog) {
+    return res.status(400).json({ message: "Unable to find blog by this ID" });
+  }
+  let existingUser;
+  try {
+    existingUser = await User.findById(blog.user);
+  } catch (err) {
+    return console.log(err);
+  }
+  if (!existingUser.id) {
+    return res.status(400).json({ message: "Unable to find user by this ID" });
+  }
+  let existingCategory;
+  try {
+    existingCategory = await Category.findById(blog.categories);
+  } catch (err) {
+    return console.log(err);
+  }
+
+  if (!existingCategory) {
+    return res
+      .status(400)
+      .json({ message: "Unable to find category by this ID" });
+  }
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    existingUser.blogs.splice(existingUser.blogs.indexOf(blog.id), 1);
+    existingCategory.blogs.splice(existingCategory.blogs.indexOf(blog.id), 1);
+    await existingUser.save({ session });
+    await existingCategory.save({ session });
+    await session.commitTransaction();
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({ message: err });
+  }
+  return res.status(200).json({ message: "Sucessfully deleted!!" });
+};
 
 export const getByUserId = async (req: Request, res: Response) => {
   const userId = req.params.id;

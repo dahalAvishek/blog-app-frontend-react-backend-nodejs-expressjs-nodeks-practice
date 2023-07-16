@@ -21,13 +21,16 @@ app.use(compression());
 app.use(cookieParser());
 app.use(bodyParser.json());
 
-const server = http.createServer(app);
+const server: http.Server<
+  typeof http.IncomingMessage,
+  typeof http.ServerResponse
+> = http.createServer(app);
 
 server.listen(8080, () => {
   console.log("Server running on port http://localhost:8080/");
 });
 
-const MONGO_URL =
+const MONGO_URL: string =
   "mongodb+srv://dahalavishek2022:whiplashre0128@blogcluster.2ev4kmr.mongodb.net/?retryWrites=true&w=majority";
 
 mongoose.Promise = Promise;
